@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RTS Schedule Generator - Editable EDD / EDF</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --grid:#7f7f7f;
+    --grid-light:#b8b8b8;
+    --gray:#dddddd;
+    --gray2:#e8e8e8;
+    --t1:#ffff66;
+    --t2:#9999ff;
+    --t3:#ff6666;
+    --t4:#99ff99;
+    --t5:#ffcc66;
+    --t6:#66ccff;
+    --bad:#e10000;
+    --good:#0b8a22;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:14px;
+    background:#ffffff;
+    color:#111;
+    font-family: Calibri, Arial, Helvetica, sans-serif;
+    font-size:13px;
+  }
+
+  h1{
+    margin:0 0 8px;
+    font-size:20px;
+    font-weight:700;
+  }
+
+  .controls{
+    max-width:1180px;
+    margin-bottom:10px;
+    padding:10px;
+    border:1px solid #b6b6b6;
+    background:#f7f7f7;
+    border-radius:4px;
+  }
+
+  .top-grid{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .control-box{
+    background:#ffffff;
+    border:1px solid #c2c2c2;
+    padding:8px;
+    border-radius:3px;
+  }
+
+  label{ display:block; font-weight:700; margin-bottom:4px; }
+
+  select,input,button{
+    font:inherit;
+    padding:5px 7px;
+    border:1px solid #999;
+    border-radius:3px;
+    background:#fff;
+  }
+
+  select{ max-width:100%; }
+
+  button{
+    cursor:pointer;
+    background:#f2f2f2;
+    margin:3px 4px 3px 0;
+  }
+
+  button:hover{ background:#e6e6e6; }
+
+  .task-table{
+    border-collapse:collapse;
+    width:100%;
+    max-width:900px;
+    margin:6px 0 8px;
+  }
+
+  .task-table th,.task-table td{
+    border:1px solid #9c9c9c;
+    text-align:center;
+    padding:4px;
+  }
+
+  .task-table th{ background:#e8e8e8; font-weight:700; }
+
+  .task-table input{
+    width:78px;
+    text-align:center;
+  }
+
+  .button-row{
+    margin-top:6px;
+    padding-top:6px;
+    border-top:1px solid #c8c8c8;
+  }
+
+  .preset-row{
+    margin-top:6px;
+    padding-top:6px;
+    border-top:1px solid #d2d2d2;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+  }
+
+  .preset-row input{
+    width:230px;
+  }
+
+  #message{
+    max-width:1180px;
+    margin:6px 0 10px;
+    font-weight:700;
+    color:#7a0000;
+  }
+
+  .help{
+    max-width:1180px;
+    color:#333;
+    line-height:1.35;
+    margin-bottom:10px;
+  }
+
+  .schedule-wrapper{
+    display:inline-block;
+    border:1px solid var(--grid);
+    background:#fff;
+    overflow-x:auto;
+    overflow-y:visible;
+    max-width:100%;
+  }
+
+  table.schedule{
+    border-collapse:collapse;
+    table-layout:fixed;
+    background:#ffffff;
+    font-size:12px;
+  }
+
+  .schedule td{
+    border:1px solid var(--grid);
+    width:26px;
+    min-width:26px;
+    height:30px;
+    text-align:center;
+    vertical-align:middle;
+    padding:0;
+    font-weight:600;
+  }
+
+  .schedule .leftlabel,
+  .schedule .rightlabel{
+    width:58px;
+    min-width:58px;
+    background:var(--gray);
+    font-weight:700;
+    font-size:13px;
+  }
+
+  .schedule .leftlabel{
+    text-align:right;
+    padding-right:7px;
+  }
+
+  .schedule .rightlabel{
+    text-align:left;
+    padding-left:7px;
+  }
+
+  .schedule .titlecell{
+    background:var(--gray);
+    height:30px;
+    text-align:left;
+    padding-left:10px;
+    font-size:16px;
+    font-weight:700;
+    text-decoration: underline;
+    text-decoration-color:#c40000;
+    text-underline-offset:3px;
+  }
+
+  .schedule .legend{
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+  }
+
+  .schedule .legend.selected{
+    outline:3px solid #111;
+    outline-offset:-3px;
+  }
+
+  .schedule .legend:hover{
+    outline:2px solid #111;
+    outline-offset:-2px;
+  }
+
+  .schedule .tick,
+  .schedule .cpu,
+  .schedule .timeindex{
+    background:#fff;
+    font-size:12px;
+    height:30px;
+  }
+
+  .schedule .cpu.editable{
+    cursor:pointer;
+    user-select:text;
+  }
+
+  .schedule .cpu.editable:hover,
+  .schedule .cpu.editable:focus{
+    outline:2px solid #222;
+    outline-offset:-2px;
+  }
+
+  .schedule .axis,
+  .schedule .taskband{
+    background:var(--gray);
+    position:relative;
+    font-size:0;
+    height:30px;
+  }
+
+  .schedule .axis::after,
+  .schedule .taskband::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:0;
+    bottom:0;
+    border-left:2px solid #6f6f6f;
+  }
+
+  .schedule .tasklabel{
+    font-size:14px;
+    font-weight:700;
+  }
+
+  .schedule .eventrow,
+  .schedule .reqrow{
+    background:#ffffff;
+    height:30px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  .schedule .eventrow:hover,
+  .schedule .reqrow:hover{
+    outline:2px solid #222;
+    outline-offset:-2px;
+  }
+
+  .task1{ background:var(--t1) !important; }
+  .task2{ background:var(--t2) !important; }
+  .task3{ background:var(--t3) !important; }
+  .task4{ background:var(--t4) !important; }
+  .task5{ background:var(--t5) !important; }
+  .task6{ background:var(--t6) !important; }
+
+  .wrong{
+    outline:3px solid var(--bad) !important;
+    outline-offset:-3px;
+  }
+
+  .correct{
+    outline:3px solid var(--good) !important;
+    outline-offset:-3px;
+  }
+
+  .solution-mode .cpu{
+    box-shadow:none;
+  }
+
+  .mark{
+    font-weight:900;
+  }
+
+  .bottom-space{
+    height:850px;
+  }
+
+  .hidden-controls .controls,
+  .hidden-controls h1,
+  .hidden-controls .help,
+  .hidden-controls #message{
+    display:none;
+  }
+
+  .show-controls-float{
+    display:none;
+    position:fixed;
+    top:8px;
+    right:8px;
+    z-index:999;
+    background:#fff;
+    border:1px solid #777;
+  }
+
+  .hidden-controls .show-controls-float{
+    display:block;
+  }
+
+  .green-button{
+    background:#99ff99;
+    border-color:#3d9a3d;
+    font-weight:700;
+  }
+
+  .green-button:hover{
+    background:#7df07d;
+  }
+
+  .show-controls-after{
+    display:none;
+    margin-top:45px;
+    margin-bottom:80px;
+  }
+
+  .show-controls-after button{
+    padding:8px 12px;
+    font-weight:700;
+  }
+
+  .hidden-controls .schedule-wrapper{
+    zoom:var(--screenshot-zoom, 1);
+    max-width:none;
+    overflow:visible;
+  }
+
+  .hidden-controls .show-controls-after{
+    display:block;
+  }
+
+  @media print{
+    body{ margin:6mm; }
+    h1,.controls,.help,#message,.show-controls-float{ display:none !important; }
+    .schedule-wrapper{ border:none; overflow:visible; }
+    .bottom-space{ display:none; }
+    table.schedule{ font-size:10px; }
+    .schedule td{ width:16px; min-width:16px; height:20px; }
+    .schedule .leftlabel,.schedule .rightlabel{ width:38px; min-width:38px; font-size:10px; }
+    .schedule .titlecell{ font-size:12px; }
+  }
+</style>
+</head>
+<body>
+<button class="show-controls-float" onclick="showControls()" style="display:none">Show controls</button>
+
+<h1>RTS Schedule Generator — editable EDD / EDF</h1>
+
+<div class="controls">
+  <div class="top-grid">
+    <div class="control-box">
+      <label for="algorithm">Algorithm for solution</label>
+      <select id="algorithm">
+        <option value="EDD">EDD — non-preemptive, earliest absolute due date</option>
+        <option value="EDF">EDF — preemptive, earliest absolute deadline</option>
+      </select>
+    </div>
+
+    <div class="control-box">
+      <label for="horizon">Time horizon</label>
+      <input id="horizon" type="number" min="1" max="300" value="60">
+    </div>
+
+    <div class="control-box">
+      <label for="samePeriod">Period</label>
+      <select id="samePeriod">
+        <option value="deadline" selected>period = deadline</option>
+        <option value="custom">custom period column</option>
+      </select>
+    </div>
+
+    <div class="control-box">
+      <label>Selected task</label>
+      <span id="activeTaskText">Task 1</span>
+    </div>
+  </div>
+
+  <table class="task-table">
+    <thead>
+      <tr>
+        <th>Task</th>
+        <th>Execution time<br>Δt<sub>exec</sub></th>
+        <th>Relative deadline<br>Δt<sub>dead</sub></th>
+        <th class="periodCol">Period<br>Δt<sub>per</sub></th>
+      </tr>
+    </thead>
+    <tbody id="taskBody"></tbody>
+  </table>
+
+  <div class="button-row">
+    <button onclick="addTask()">Add task</button>
+    <button onclick="removeTask()">Remove task</button>
+    <button class="green-button" onclick="buildEmptyTemplate()">Build empty template</button>
+    <button onclick="showSolution()">Show solution</button>
+    <button onclick="showMySolution()">My solution</button>
+    <button onclick="compareSolution()">Compare my solution</button>
+    <button onclick="clearCpu()">Clear CPU row</button>
+    <button onclick="hideControls()">Hide controls for screenshot</button>
+    <button onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div class="preset-row">
+    <b>Presets:</b>
+    <input id="presetName" placeholder="empty = solution1, solution2, ...">
+    <button onclick="savePreset()">Save preset</button>
+    <select id="presetSelect"></select>
+    <button onclick="loadPreset()">Load preset</button>
+    <button onclick="deletePreset()">Delete preset</button>
+  </div>
+</div>
+
+<div id="message"></div>
+
+<div class="help">
+  Click a colored task number in <b>Res.</b> to select the task. Then click CPU cells to fill them with that task.
+  CPU cells also accept keyboard input: click/focus a cell, then press <b>1–6</b>; press <b>0</b>, <b>Backspace</b>, or <b>Delete</b> to clear it.
+  Clicking <b>D</b> cells toggles <b>!</b>. Clicking <b>Req</b> cells toggles <b>✓</b> for progress marking; it does not remove the request anymore.
+</div>
+
+<div class="schedule-wrapper">
+  <div id="scheduleArea"></div>
+</div>
+
+<div class="show-controls-after">
+  <button onclick="showControls()">Show controls</button>
+</div>
+
+<div class="bottom-space"></div>
+
+<script>
+const colors = ["task1","task2","task3","task4","task5","task6"];
+const PRESET_KEY = "rts_schedule_generator_presets_v3";
+
+let tasks = [];
+let jobs = [];
+let userTimeline = [];
+let activeTask = 1;
+let showSolutionMode = false;
+let compareMode = false;
+
+// User progress markers. They do not change automatic Req/D labels.
+let reqMark = new Set();
+let dBang = new Set();
+
+function superscript(n){
+  const map = {"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹"};
+  return String(n).split("").map(c => map[c] || c).join("");
+}
+
+function addTask(exec=2, deadline=10, period=null){
+  const body = document.getElementById("taskBody");
+  const idx = body.children.length + 1;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><b>T${superscript(idx)}</b></td>
+    <td><input type="number" min="1" value="${exec}" class="exec"></td>
+    <td><input type="number" min="1" value="${deadline}" class="deadline"></td>
+    <td class="periodCol"><input type="number" min="1" value="${period || deadline}" class="period"></td>
+  `;
+  body.appendChild(tr);
+  updatePeriodVisibility();
+}
+
+function removeTask(){
+  const body = document.getElementById("taskBody");
+  if(body.children.length > 1){
+    body.removeChild(body.lastElementChild);
+    buildEmptyTemplate();
+  }
+}
+
+function updatePeriodVisibility(){
+  const custom = document.getElementById("samePeriod").value === "custom";
+  document.querySelectorAll(".periodCol").forEach(el => el.style.display = custom ? "" : "none");
+}
+
+document.getElementById("samePeriod").addEventListener("change", updatePeriodVisibility);
+
+function readTasks(){
+  const custom = document.getElementById("samePeriod").value === "custom";
+  return [...document.querySelectorAll("#taskBody tr")].map((tr, i) => {
+    const exec = parseInt(tr.querySelector(".exec").value, 10);
+    const deadline = parseInt(tr.querySelector(".deadline").value, 10);
+    const period = custom ? parseInt(tr.querySelector(".period").value, 10) : deadline;
+    return {id:i+1, exec, deadline, period};
+  }).filter(t => t.exec > 0 && t.deadline > 0 && t.period > 0);
+}
+
+function writeTasksToInputs(taskList){
+  const body = document.getElementById("taskBody");
+  body.innerHTML = "";
+  for(const t of taskList){
+    addTask(t.exec, t.deadline, t.period);
+  }
+  updatePeriodVisibility();
+}
+
+function makeJobs(taskList, horizon){
+  const js = [];
+  for(const t of taskList){
+    let k = 0;
+    for(let r = 0; r < horizon; r += t.period){
+      js.push({
+        taskId:t.id,
+        jobNo:k,
+        req:r,
+        absDeadline:r + t.deadline,
+        remaining:t.exec,
+        exec:t.exec,
+        completed:false,
+        start:null,
+        completion:null
+      });
+      k++;
+    }
+  }
+  return js;
+}
+
+function scheduleEDD(taskList, horizon){
+  const js = makeJobs(taskList, horizon);
+  const timeline = Array(horizon).fill(null);
+  let current = null;
+
+  for(let time=0; time<horizon; time++){
+    if(!(current && current.remaining > 0)){
+      current = js
+        .filter(j => !j.completed && j.req <= time && j.remaining > 0)
+        .sort((a,b) =>
+          a.absDeadline - b.absDeadline ||
+          a.req - b.req ||
+          a.taskId - b.taskId
+        )[0] || null;
+
+      if(current && current.start === null) current.start = time;
+    }
+
+    if(current){
+      timeline[time] = current.taskId;
+      current.remaining--;
+      if(current.remaining === 0){
+        current.completed = true;
+        current.completion = time + 1;
+        current = null;
+      }
+    }
+  }
+  return {timeline, jobs:js};
+}
+
+function scheduleEDF(taskList, horizon){
+  const js = makeJobs(taskList, horizon);
+  const timeline = Array(horizon).fill(null);
+
+  for(let time=0; time<horizon; time++){
+    const current = js
+      .filter(j => !j.completed && j.req <= time && j.remaining > 0)
+      .sort((a,b) =>
+        a.absDeadline - b.absDeadline ||
+        a.req - b.req ||
+        a.taskId - b.taskId
+      )[0] || null;
+
+    if(current){
+      if(current.start === null) current.start = time;
+      timeline[time] = current.taskId;
+      current.remaining--;
+      if(current.remaining === 0){
+        current.completed = true;
+        current.completion = time + 1;
+      }
+    }
+  }
+  return {timeline, jobs:js};
+}
+
+function computeSolution(){
+  const horizon = getHorizon();
+  const algorithm = document.getElementById("algorithm").value;
+  return algorithm === "EDD" ? scheduleEDD(tasks, horizon) : scheduleEDF(tasks, horizon);
+}
+
+function detectMisses(js, horizon){
+  return js.filter(j => j.absDeadline <= horizon && (!j.completed || j.completion > j.absDeadline));
+}
+
+function getHorizon(){
+  return parseInt(document.getElementById("horizon").value, 10) || 60;
+}
+
+function buildEmptyTemplate(){
+  tasks = readTasks();
+  const horizon = getHorizon();
+
+  if(!tasks.length){
+    setMessage("Enter at least one valid task.");
+    return;
+  }
+
+  jobs = makeJobs(tasks, horizon);
+  userTimeline = Array(horizon).fill(null);
+  showSolutionMode = false;
+  compareMode = false;
+  reqMark.clear();
+  dBang.clear();
+
+  render();
+  setMessage("Empty template generated. Select a task from Res. Then click or type into CPU cells.");
+}
+
+function showSolution(){
+  if(!tasks.length) buildEmptyTemplate();
+  showSolutionMode = true;
+  compareMode = false;
+  render();
+  const sol = computeSolution();
+  const misses = detectMisses(sol.jobs, getHorizon());
+  setMessage(misses.length ? "Solution shown. Click My solution to return. Deadline miss in computed schedule: " + misses.map(j => `T${j.taskId} at t=${j.absDeadline}`).join("; ") : "Solution shown. Click My solution to return. No deadline miss detected inside the shown horizon.");
+}
+
+function compareSolution(){
+  if(!tasks.length) buildEmptyTemplate();
+
+  if(compareMode){
+    compareMode = false;
+    showSolutionMode = false;
+    render();
+    setMessage("Compare highlight removed. Your solution is shown again.");
+    return;
+  }
+
+  showSolutionMode = false;
+  compareMode = true;
+  render();
+
+  const sol = computeSolution().timeline;
+  let correct = 0, wrong = 0;
+  for(let i=0; i<sol.length; i++){
+    if((userTimeline[i] || null) === (sol[i] || null)) correct++;
+    else wrong++;
+  }
+  setMessage(`Compare result: ${correct} correct cells, ${wrong} wrong cells. Click Compare my solution again to remove the highlight.`);
+}
+
+function showMySolution(){
+  showSolutionMode = false;
+  compareMode = false;
+  render();
+  setMessage("Your solution is shown again.");
+}
+
+function clearCpu(){
+  const horizon = getHorizon();
+  userTimeline = Array(horizon).fill(null);
+  showSolutionMode = false;
+  compareMode = false;
+  render();
+  setMessage("CPU row cleared. D/Req progress markers kept.");
+}
+
+function setActiveTask(id){
+  activeTask = id;
+  document.getElementById("activeTaskText").textContent = `Task ${id}`;
+  showSolutionMode = false;
+  render();
+}
+
+function setMessage(text){
+  document.getElementById("message").textContent = text;
+}
+
+function cell(text="", cls="", attrs=""){
+  return `<td class="${cls}" ${attrs}>${text}</td>`;
+}
+
+function cpuCellText(id){
+  return id ? String(id) : "";
+}
+
+function toggleCpu(time){
+  if(showSolutionMode) showSolutionMode = false;
+  compareMode = false;
+
+  if(userTimeline[time] === activeTask){
+    userTimeline[time] = null;
+  } else {
+    userTimeline[time] = activeTask;
+  }
+  render();
+}
+
+function handleCpuKey(event, time){
+  const key = event.key;
+
+  if(/^[1-6]$/.test(key)){
+    event.preventDefault();
+    const n = parseInt(key, 10);
+    userTimeline[time] = n;
+    activeTask = n;
+    showSolutionMode = false;
+    compareMode = false;
+    render();
+    focusCpu(time + 1);
+    return;
+  }
+
+  if(key === "0" || key === "Backspace" || key === "Delete"){
+    event.preventDefault();
+    userTimeline[time] = null;
+    showSolutionMode = false;
+    compareMode = false;
+    render();
+    focusCpu(time);
+    return;
+  }
+
+  if(key === "ArrowRight"){
+    event.preventDefault();
+    focusCpu(time + 1);
+    return;
+  }
+
+  if(key === "ArrowLeft"){
+    event.preventDefault();
+    focusCpu(time - 1);
+    return;
+  }
+}
+
+function focusCpu(time){
+  setTimeout(() => {
+    const el = document.querySelector(`[data-cpu-time="${time}"]`);
+    if(el) el.focus();
+  }, 0);
+}
+
+function toggleReqMark(taskId, time){
+  const key = `${taskId}:${time}`;
+  if(reqMark.has(key)) reqMark.delete(key);
+  else reqMark.add(key);
+  render();
+}
+
+function toggleDeadlineBang(taskId, time){
+  const key = `${taskId}:${time}`;
+  if(dBang.has(key)) dBang.delete(key);
+  else dBang.add(key);
+  render();
+}
+
+function getPresetData(){
+  return {
+    version: 3,
+    algorithm: document.getElementById("algorithm").value,
+    horizon: getHorizon(),
+    samePeriod: document.getElementById("samePeriod").value,
+    tasks: readTasks(),
+    userTimeline,
+    activeTask,
+    reqMark: [...reqMark],
+    dBang: [...dBang]
+  };
+}
+
+function getPresets(){
+  try{
+    return JSON.parse(localStorage.getItem(PRESET_KEY) || "{}");
+  } catch(e){
+    return {};
+  }
+}
+
+function savePresetsObject(obj){
+  localStorage.setItem(PRESET_KEY, JSON.stringify(obj));
+}
+
+function refreshPresetList(){
+  const select = document.getElementById("presetSelect");
+  const presets = getPresets();
+  const names = Object.keys(presets).sort();
+  select.innerHTML = "";
+  for(const name of names){
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  }
+}
+
+function nextSolutionPresetName(presets){
+  let i = 1;
+  while(presets[`solution${i}`]) i++;
+  return `solution${i}`;
+}
+
+function savePreset(){
+  tasks = readTasks();
+  if(!tasks.length){
+    setMessage("Cannot save: no valid tasks.");
+    return;
+  }
+
+  const presets = getPresets();
+  const nameInput = document.getElementById("presetName");
+  const name = nameInput.value.trim() || nextSolutionPresetName(presets);
+
+  presets[name] = getPresetData();
+  savePresetsObject(presets);
+  refreshPresetList();
+  document.getElementById("presetSelect").value = name;
+  document.getElementById("presetName").value = name;
+  setMessage(`Preset saved: ${name}`);
+}
+
+function loadPreset(){
+  const name = document.getElementById("presetSelect").value;
+  if(!name){
+    setMessage("No preset selected.");
+    return;
+  }
+
+  const presets = getPresets();
+  const data = presets[name];
+
+  if(!data){
+    setMessage("Preset not found.");
+    return;
+  }
+
+  document.getElementById("algorithm").value = data.algorithm || "EDD";
+  document.getElementById("horizon").value = data.horizon || 60;
+  document.getElementById("samePeriod").value = data.samePeriod || "deadline";
+  writeTasksToInputs(data.tasks || []);
+
+  tasks = readTasks();
+  jobs = makeJobs(tasks, getHorizon());
+  userTimeline = Array(getHorizon()).fill(null);
+  (data.userTimeline || []).forEach((v,i) => {
+    if(i < userTimeline.length) userTimeline[i] = v;
+  });
+
+  activeTask = data.activeTask || 1;
+  reqMark = new Set(data.reqMark || []);
+  dBang = new Set(data.dBang || []);
+  showSolutionMode = false;
+  compareMode = false;
+
+  document.getElementById("presetName").value = name;
+  render();
+  setMessage(`Preset loaded: ${name}`);
+}
+
+function deletePreset(){
+  const name = document.getElementById("presetSelect").value;
+  if(!name){
+    setMessage("No preset selected.");
+    return;
+  }
+
+  const presets = getPresets();
+  delete presets[name];
+  savePresetsObject(presets);
+  refreshPresetList();
+  setMessage(`Preset deleted: ${name}`);
+}
+
+function render(){
+  const horizon = getHorizon();
+  const minTaskRows = Math.max(4, tasks.length);
+  const solution = tasks.length ? computeSolution() : {timeline:Array(horizon).fill(null), jobs:[]};
+  const displayTimeline = showSolutionMode ? solution.timeline : userTimeline;
+  const solutionTimeline = solution.timeline;
+
+  document.getElementById("activeTaskText").textContent = `Task ${activeTask}`;
+
+  let html = `<table class="schedule ${showSolutionMode ? "solution-mode" : ""}">`;
+
+  html += `<tr><td class="leftlabel"></td><td class="titlecell" colspan="${horizon+1}">Schedule:</td><td class="rightlabel"></td></tr>`;
+
+  html += `<tr><td class="leftlabel">Res.</td>`;
+  for(let t=0; t<=horizon; t++){
+    if(t < minTaskRows){
+      const id = t + 1;
+      const selected = activeTask === id ? " selected" : "";
+      html += cell(id, `legend ${colors[(id-1)%colors.length]}${selected}`, `onclick="setActiveTask(${id})" title="Select task ${id}"`);
+    } else {
+      html += cell("", "");
+    }
+  }
+  html += `<td class="rightlabel">Res.</td></tr>`;
+
+  html += `<tr><td class="leftlabel">#tic</td>`;
+  for(let t=0; t<=horizon; t++) html += cell(t, "tick");
+  html += `<td class="rightlabel">#tic</td></tr>`;
+
+  html += `<tr><td class="leftlabel">CPU:</td>`;
+  for(let t=0; t<=horizon; t++){
+    if(t < horizon){
+      const id = displayTimeline[t];
+      let cls = `cpu editable ${id ? colors[(id-1)%colors.length] : ""}`;
+      if(compareMode){
+        const u = userTimeline[t] || null;
+        const s = solutionTimeline[t] || null;
+        if(u === s && u !== null) cls += " correct";
+        else if(u !== s) cls += " wrong";
+      }
+      html += cell(cpuCellText(id), cls, `tabindex="0" data-cpu-time="${t}" onclick="toggleCpu(${t})" onkeydown="handleCpuKey(event, ${t})" title="Click to place selected task. Press 1-6 to type, 0/Delete/Backspace to clear."`);
+    } else {
+      html += cell("", "cpu");
+    }
+  }
+  html += `<td class="rightlabel">CPU:</td></tr>`;
+
+  html += `<tr><td class="leftlabel">tᵢ</td>`;
+  for(let t=0; t<=horizon; t++) html += cell("", "axis");
+  html += `<td class="rightlabel">tᵢ</td></tr>`;
+
+  html += `<tr><td class="leftlabel"></td>`;
+  for(let t=0; t<=horizon; t++) html += cell(t, "timeindex");
+  html += `<td class="rightlabel"></td></tr>`;
+
+  for(let taskNo=1; taskNo<=minTaskRows; taskNo++){
+    const task = tasks.find(x => x.id === taskNo);
+    const color = colors[(taskNo-1)%colors.length];
+
+    html += `<tr><td class="leftlabel tasklabel ${color}">T${superscript(taskNo)}</td>`;
+    for(let t=0; t<=horizon; t++) html += cell("", "taskband");
+    html += `<td class="rightlabel tasklabel ${color}">T${superscript(taskNo)}</td></tr>`;
+
+    html += `<tr><td class="leftlabel ${color}">D${superscript(taskNo)}<sub>i</sub></td>`;
+    for(let t=0; t<=horizon; t++){
+      let text = "";
+      let cls = `eventrow`;
+      if(task && t < task.exec){
+        text = taskNo;
+        cls += ` ${color}`;
+      } else if(task){
+        const dJob = jobs.find(j => j.taskId === taskNo && j.absDeadline === t);
+        const key = `${taskNo}:${t}`;
+        if(dJob){
+          text = `D${dJob.jobNo}${dBang.has(key) ? "!" : ""}`;
+          cls += ` ${color}`;
+        } else if(dBang.has(key)){
+          text = "!";
+          cls += ` ${color}`;
+        }
+      }
+      html += cell(text, cls, `onclick="toggleDeadlineBang(${taskNo}, ${t})" title="Click to add/remove ! marker"`);
+    }
+    html += `<td class="rightlabel ${color}">D${superscript(taskNo)}<sub>i</sub></td></tr>`;
+
+    html += `<tr><td class="leftlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td>`;
+    for(let t=0; t<=horizon; t++){
+      let text = "";
+      let cls = `reqrow`;
+      if(task){
+        const rJob = jobs.find(j => j.taskId === taskNo && j.req === t);
+        const key = `${taskNo}:${t}`;
+        if(rJob){
+          text = `R${rJob.jobNo}${reqMark.has(key) ? "✓" : ""}`;
+          cls += ` ${color}`;
+        } else if(reqMark.has(key)){
+          text = "✓";
+          cls += ` ${color}`;
+        }
+      }
+      html += cell(text, cls, `onclick="toggleReqMark(${taskNo}, ${t})" title="Click to add/remove ✓ marker"`);
+    }
+    html += `<td class="rightlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td></tr>`;
+  }
+
+  html += `<tr><td class="leftlabel">tᵢ</td>`;
+  for(let t=0; t<=horizon; t++) html += cell(t, "timeindex");
+  html += `<td class="rightlabel">tᵢ</td></tr>`;
+
+  html += `<tr><td class="leftlabel">t</td><td colspan="${horizon+1}" style="height:34px;background:#fff;position:relative;">
+    <div style="height:4px;background:#000;margin:15px 18px 0 10px;position:relative;">
+      <div style="position:absolute;right:-4px;top:-6px;width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:14px solid #000;"></div>
+    </div>
+  </td><td class="rightlabel">t</td></tr>`;
+
+  html += `</table>`;
+
+  document.getElementById("scheduleArea").innerHTML = html;
+}
+
+function hideControls(){
+  document.body.classList.add("hidden-controls");
+
+  // Scale the whole schedule so it fits on screen for screenshots.
+  setTimeout(() => {
+    const wrapper = document.querySelector(".schedule-wrapper");
+    const table = document.querySelector("table.schedule");
+    if(wrapper && table){
+      const available = window.innerWidth - 30;
+      const fullWidth = table.scrollWidth || wrapper.scrollWidth;
+      const scale = Math.min(1, Math.max(0.45, available / fullWidth));
+      document.documentElement.style.setProperty("--screenshot-zoom", scale.toFixed(3));
+    }
+    window.scrollTo({top:0, left:0, behavior:"instant"});
+  }, 0);
+}
+
+function showControls(){
+  document.body.classList.remove("hidden-controls");
+  document.documentElement.style.setProperty("--screenshot-zoom", "1");
+}
+
+// Default example
+addTask(2,10);
+addTask(3,10);
+addTask(4,10);
+updatePeriodVisibility();
+refreshPresetList();
+buildEmptyTemplate();
+</script>
+</body>
+</html>
