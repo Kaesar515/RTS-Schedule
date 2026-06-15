@@ -12,6 +12,19 @@ const expectedTokens = [
   "--schedule-event-grid-offset:calc(var(--schedule-cell-width) / 2);",
 ];
 
+const dReqSeparatorRule = `.schedule .eventrow::after,
+  .schedule .reqrow::after{
+    content:"";
+    position:absolute;
+    top:0;
+    right:0;
+    bottom:0;
+    width:1px;
+    background:var(--grid-light);
+    pointer-events:none;
+    z-index:1;
+  }`;
+
 for (const token of expectedTokens) {
   assert.ok(html.includes(token), `Missing reference layout token: ${token}`);
 }
@@ -94,6 +107,10 @@ assert.ok(
   html.includes(".schedule .eventrow .event-marker,\n  .schedule .reqrow .event-marker{") &&
     html.includes("transform:translate(calc(-50% - var(--schedule-event-grid-offset)), -50%)"),
   "D/Req markers must stay on their original instant while their cells shift.",
+);
+assert.ok(
+  html.includes(dReqSeparatorRule),
+  "D/Req cells need a faded non-interactive visual separator layer.",
 );
 assert.ok(
   html.includes(".instant-marker{") &&

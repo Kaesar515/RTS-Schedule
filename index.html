@@ -292,6 +292,19 @@
     transform:translateX(var(--schedule-event-grid-offset));
   }
 
+  .schedule .eventrow::after,
+  .schedule .reqrow::after{
+    content:"";
+    position:absolute;
+    top:0;
+    right:0;
+    bottom:0;
+    width:1px;
+    background:var(--grid-light);
+    pointer-events:none;
+    z-index:1;
+  }
+
   .schedule .eventrow:hover,
   .schedule .reqrow:hover{
     outline:2px solid #222;
