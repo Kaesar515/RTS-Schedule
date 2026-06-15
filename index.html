@@ -6,11 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{
-    --grid:#7f7f7f;
-    --grid-light:#b8b8b8;
+    --grid:#888888;
+    --grid-light:#cccccc;
     --gray:#dddddd;
     --gray2:#e8e8e8;
     --t1:#ffff66;
+    --t1-timeline:#ffff99;
     --t2:#9999ff;
     --t3:#ff6666;
     --t4:#99ff99;
@@ -18,6 +19,12 @@
     --t6:#66ccff;
     --bad:#e10000;
     --good:#0b8a22;
+    --schedule-cell-width:44px;
+    --schedule-row-height:53px;
+    --schedule-side-width:80px;
+    --schedule-gap-width:18px;
+    --schedule-arrow-height:48px;
+    --schedule-event-grid-offset:calc(var(--schedule-cell-width) / 2);
   }
 
   *{ box-sizing:border-box; }
@@ -147,13 +154,14 @@
     table-layout:fixed;
     background:#ffffff;
     font-size:12px;
+    border:2px solid #333;
   }
 
   .schedule td{
-    border:1px solid var(--grid);
-    width:26px;
-    min-width:26px;
-    height:30px;
+    border:2px solid var(--grid);
+    width:var(--schedule-cell-width);
+    min-width:var(--schedule-cell-width);
+    height:var(--schedule-row-height);
     text-align:center;
     vertical-align:middle;
     padding:0;
@@ -162,38 +170,40 @@
 
   .schedule .leftlabel,
   .schedule .rightlabel{
-    width:58px;
-    min-width:58px;
+    width:var(--schedule-side-width);
+    min-width:var(--schedule-side-width);
     background:var(--gray);
     font-weight:700;
-    font-size:13px;
+    font-size:22px;
   }
 
   .schedule .leftlabel{
     text-align:right;
     padding-right:7px;
+    border-right-color:#333;
   }
 
   .schedule .rightlabel{
     text-align:left;
     padding-left:7px;
+    border-left-color:#333;
   }
 
   .schedule .titlecell{
     background:var(--gray);
-    height:30px;
+    height:var(--schedule-row-height);
     text-align:left;
-    padding-left:10px;
-    font-size:16px;
+    padding-left:20px;
+    font-size:28px;
     font-weight:700;
     text-decoration: underline;
     text-decoration-color:#c40000;
-    text-underline-offset:3px;
+    text-underline-offset:4px;
   }
 
   .schedule .legend{
     cursor:pointer;
-    font-size:13px;
+    font-size:22px;
     font-weight:700;
   }
 
@@ -208,11 +218,16 @@
   }
 
   .schedule .tick,
-  .schedule .cpu,
   .schedule .timeindex{
+    background:var(--gray);
+    font-size:20px;
+    height:var(--schedule-row-height);
+  }
+
+  .schedule .cpu{
     background:#fff;
-    font-size:12px;
-    height:30px;
+    font-size:20px;
+    height:var(--schedule-row-height);
   }
 
   .schedule .cpu.editable{
@@ -231,31 +246,50 @@
     background:var(--gray);
     position:relative;
     font-size:0;
-    height:30px;
+    height:var(--schedule-row-height);
+  }
+
+  .schedule .axis,
+  .schedule .taskband{
+    border-bottom:none;
+  }
+
+  .schedule .timeindex{
+    border-top:none;
+    vertical-align:top;
+    padding-top:3px;
+    position:relative;
   }
 
   .schedule .axis::after,
   .schedule .taskband::after{
     content:"";
     position:absolute;
-    left:50%;
+    left:100%;
     top:0;
     bottom:0;
     border-left:2px solid #6f6f6f;
   }
 
   .schedule .tasklabel{
-    font-size:14px;
+    font-size:24px;
     font-weight:700;
   }
 
   .schedule .eventrow,
   .schedule .reqrow{
     background:#ffffff;
-    height:30px;
-    font-size:12px;
+    height:var(--schedule-row-height);
+    font-size:20px;
     font-weight:700;
     cursor:pointer;
+    position:relative;
+    border-width:1px;
+    border-left-color:var(--grid-light);
+    border-right-color:var(--grid-light);
+    border-top-style:dotted;
+    border-bottom-style:dotted;
+    transform:translateX(var(--schedule-event-grid-offset));
   }
 
   .schedule .eventrow:hover,
@@ -265,6 +299,10 @@
   }
 
   .task1{ background:var(--t1) !important; }
+  .schedule .eventrow.task1,
+  .schedule .reqrow.task1{
+    background:var(--t1-timeline) !important;
+  }
   .task2{ background:var(--t2) !important; }
   .task3{ background:var(--t3) !important; }
   .task4{ background:var(--t4) !important; }
@@ -290,9 +328,98 @@
   }
 
   .instant-marker{
-    display:block;
-    text-align:left;
-    padding-left:3px;
+    position:absolute;
+    left:100%;
+    top:50%;
+    transform:translate(-50%, -50%);
+    white-space:nowrap;
+    z-index:2;
+  }
+
+  .instant-marker.time-marker{
+    top:3px;
+    transform:translateX(-50%);
+    background:var(--gray);
+    padding:0 3px;
+  }
+
+  .instant-marker.event-marker{
+    background:inherit;
+    padding:0 3px;
+  }
+
+  .schedule .eventrow .event-marker,
+  .schedule .reqrow .event-marker{
+    transform:translate(calc(-50% - var(--schedule-event-grid-offset)), -50%);
+  }
+
+  .schedule .lead-gap,
+  .schedule .trail-gap{
+    width:var(--schedule-gap-width);
+    min-width:var(--schedule-gap-width);
+  }
+
+  .schedule .lead-gap{
+    background:var(--gray);
+    border-left-color:var(--grid);
+    border-right-color:var(--grid);
+  }
+
+  .schedule .trail-gap{
+    background:#fff;
+  }
+
+  .schedule .trail-gap.gray-gap{
+    background:var(--gray);
+    border-top:none;
+  }
+
+  .schedule .trail-gap.event-gap{
+    background:#fff;
+    border-width:1px;
+    border-left-color:var(--grid-light);
+    border-right-color:var(--grid-light);
+    border-top-style:dotted;
+    border-bottom-style:dotted;
+  }
+
+  .schedule .arrowcell{
+    height:var(--schedule-arrow-height);
+    background:#fff;
+    position:relative;
+  }
+
+  .schedule .arrowrow td{
+    height:var(--schedule-arrow-height);
+  }
+
+  .schedule .time-arrow{
+    height:5px;
+    background:#000;
+    margin:15px 20px 0 calc(var(--schedule-cell-width) - 2px);
+    position:relative;
+  }
+
+  .schedule .time-arrow::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:-7px;
+    width:5px;
+    height:19px;
+    background:#000;
+  }
+
+  .schedule .time-arrow::after{
+    content:"";
+    position:absolute;
+    right:-5px;
+    top:-7px;
+    width:0;
+    height:0;
+    border-top:10px solid transparent;
+    border-bottom:10px solid transparent;
+    border-left:18px solid #000;
   }
 
   .bottom-space{
@@ -345,6 +472,11 @@
     zoom:var(--screenshot-zoom, 1);
     max-width:none;
     overflow:visible;
+    border:none;
+  }
+
+  body.hidden-controls{
+    margin:0;
   }
 
   .hidden-controls .show-controls-after{
@@ -356,10 +488,46 @@
     h1,.controls,.help,#message,.show-controls-float{ display:none !important; }
     .schedule-wrapper{ border:none; overflow:visible; }
     .bottom-space{ display:none; }
-    table.schedule{ font-size:10px; }
+    table.schedule{
+      --schedule-cell-width:16px;
+      font-size:10px;
+    }
     .schedule td{ width:16px; min-width:16px; height:20px; }
     .schedule .leftlabel,.schedule .rightlabel{ width:38px; min-width:38px; font-size:10px; }
-    .schedule .titlecell{ font-size:12px; }
+    .schedule .titlecell{ height:30px; font-size:12px; }
+    .schedule .legend,.schedule .tasklabel{ font-size:10px; }
+    .schedule .tick,
+    .schedule .cpu,
+    .schedule .timeindex,
+    .schedule .axis,
+    .schedule .taskband,
+    .schedule .eventrow,
+    .schedule .reqrow{
+      height:20px;
+      font-size:10px;
+    }
+    .schedule .lead-gap,
+    .schedule .trail-gap{
+      width:7px;
+      min-width:7px;
+    }
+    .schedule .arrowrow td,.schedule .arrowcell{ height:20px; }
+    .schedule .time-arrow{
+      height:3px;
+      margin:8px 12px 0 calc(var(--schedule-cell-width) - 2px);
+    }
+    .schedule .time-arrow::before{
+      top:-4px;
+      width:3px;
+      height:11px;
+    }
+    .schedule .time-arrow::after{
+      right:-3px;
+      top:-4px;
+      border-top-width:6px;
+      border-bottom-width:6px;
+      border-left-width:10px;
+    }
   }
 </style>
 </head>
@@ -699,6 +867,14 @@ function cell(text="", cls="", attrs=""){
   return `<td class="${cls}" ${attrs}>${text}</td>`;
 }
 
+function leadGap(cls=""){
+  return `<td class="lead-gap ${cls}"></td>`;
+}
+
+function trailGap(cls=""){
+  return `<td class="trail-gap ${cls}"></td>`;
+}
+
 function cpuCellText(id){
   return id ? String(id) : "";
 }
@@ -891,9 +1067,9 @@ function render(){
 
   let html = `<table class="schedule ${showSolutionMode ? "solution-mode" : ""}">`;
 
-  html += `<tr><td class="leftlabel"></td><td class="titlecell" colspan="${horizon+1}">Schedule:</td><td class="rightlabel"></td></tr>`;
+  html += `<tr><td class="leftlabel"></td><td class="titlecell" colspan="${horizon+2}">Schedule:</td><td class="rightlabel"></td></tr>`;
 
-  html += `<tr><td class="leftlabel">Res.</td>`;
+  html += `<tr><td class="leftlabel">Res.</td>${leadGap()}`;
   for(let t=0; t<=horizon; t++){
     if(t < minTaskRows){
       const id = t + 1;
@@ -905,11 +1081,11 @@ function render(){
   }
   html += `<td class="rightlabel">Res.</td></tr>`;
 
-  html += `<tr><td class="leftlabel">#tic</td>`;
+  html += `<tr><td class="leftlabel">#tic</td>${leadGap()}`;
   for(let t=0; t<=horizon; t++) html += cell(t, "tick");
   html += `<td class="rightlabel">#tic</td></tr>`;
 
-  html += `<tr><td class="leftlabel">CPU:</td>`;
+  html += `<tr><td class="leftlabel">CPU:</td>${leadGap()}`;
   for(let t=0; t<=horizon; t++){
     if(t < horizon){
       const id = displayTimeline[t];
@@ -929,11 +1105,11 @@ function render(){
 
   html += `<tr><td class="leftlabel">tᵢ</td>`;
   for(let t=0; t<=horizon; t++) html += cell("", "axis");
-  html += `<td class="rightlabel">tᵢ</td></tr>`;
+  html += `${trailGap("gray-gap")}<td class="rightlabel">tᵢ</td></tr>`;
 
   html += `<tr><td class="leftlabel"></td>`;
-  for(let t=0; t<=horizon; t++) html += cell(t, "timeindex");
-  html += `<td class="rightlabel"></td></tr>`;
+  for(let t=0; t<=horizon; t++) html += cell(`<span class="instant-marker time-marker">${t}</span>`, "timeindex");
+  html += `${trailGap("gray-gap")}<td class="rightlabel"></td></tr>`;
 
   for(let taskNo=1; taskNo<=minTaskRows; taskNo++){
     const task = tasks.find(x => x.id === taskNo);
@@ -941,29 +1117,29 @@ function render(){
 
     html += `<tr><td class="leftlabel tasklabel ${color}">T${superscript(taskNo)}</td>`;
     for(let t=0; t<=horizon; t++) html += cell("", "taskband");
-    html += `<td class="rightlabel tasklabel ${color}">T${superscript(taskNo)}</td></tr>`;
+    html += `${trailGap("gray-gap")}<td class="rightlabel tasklabel ${color}">T${superscript(taskNo)}</td></tr>`;
 
     html += `<tr><td class="leftlabel ${color}">D${superscript(taskNo)}<sub>i</sub></td>`;
     for(let t=0; t<=horizon; t++){
       let text = "";
       let cls = `eventrow`;
       if(task && t < task.exec){
-        text = taskNo;
+        text = `<span class="instant-marker event-marker">${taskNo}</span>`;
         cls += ` ${color}`;
       } else if(task){
         const dJob = jobs.find(j => j.taskId === taskNo && j.absDeadline === t);
         const key = `${taskNo}:${t}`;
         if(dJob){
-          text = `<span class="instant-marker">D${dJob.jobNo}${dBang.has(key) ? "!" : ""}</span>`;
+          text = `<span class="instant-marker event-marker">D${dJob.jobNo}${dBang.has(key) ? "!" : ""}</span>`;
           cls += ` ${color}`;
         } else if(dBang.has(key)){
-          text = `<span class="instant-marker">!</span>`;
+          text = `<span class="instant-marker event-marker">!</span>`;
           cls += ` ${color}`;
         }
       }
       html += cell(text, cls, `onclick="toggleDeadlineBang(${taskNo}, ${t})" title="Click to add/remove ! marker"`);
     }
-    html += `<td class="rightlabel ${color}">D${superscript(taskNo)}<sub>i</sub></td></tr>`;
+    html += `${trailGap("event-gap")}<td class="rightlabel ${color}">D${superscript(taskNo)}<sub>i</sub></td></tr>`;
 
     html += `<tr><td class="leftlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td>`;
     for(let t=0; t<=horizon; t++){
@@ -973,26 +1149,24 @@ function render(){
         const rJob = jobs.find(j => j.taskId === taskNo && j.req === t);
         const key = `${taskNo}:${t}`;
         if(rJob){
-          text = `<span class="instant-marker">R${rJob.jobNo}${reqMark.has(key) ? "✓" : ""}</span>`;
+          text = `<span class="instant-marker event-marker">R${rJob.jobNo}${reqMark.has(key) ? "✓" : ""}</span>`;
           cls += ` ${color}`;
         } else if(reqMark.has(key)){
-          text = `<span class="instant-marker">✓</span>`;
+          text = `<span class="instant-marker event-marker">✓</span>`;
           cls += ` ${color}`;
         }
       }
       html += cell(text, cls, `onclick="toggleReqMark(${taskNo}, ${t})" title="Click to add/remove ✓ marker"`);
     }
-    html += `<td class="rightlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td></tr>`;
+    html += `${trailGap("event-gap")}<td class="rightlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td></tr>`;
   }
 
   html += `<tr><td class="leftlabel">tᵢ</td>`;
-  for(let t=0; t<=horizon; t++) html += cell(t, "timeindex");
-  html += `<td class="rightlabel">tᵢ</td></tr>`;
+  for(let t=0; t<=horizon; t++) html += cell(`<span class="instant-marker time-marker">${t}</span>`, "timeindex");
+  html += `${trailGap("gray-gap")}<td class="rightlabel">tᵢ</td></tr>`;
 
-  html += `<tr><td class="leftlabel">t</td><td colspan="${horizon+1}" style="height:34px;background:#fff;position:relative;">
-    <div style="height:4px;background:#000;margin:15px 18px 0 10px;position:relative;">
-      <div style="position:absolute;right:-4px;top:-6px;width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:14px solid #000;"></div>
-    </div>
+  html += `<tr class="arrowrow"><td class="leftlabel">t</td><td colspan="${horizon+2}" class="arrowcell">
+    <div class="time-arrow"></div>
   </td><td class="rightlabel">t</td></tr>`;
 
   html += `</table>`;
@@ -1008,9 +1182,9 @@ function hideControls(){
     const wrapper = document.querySelector(".schedule-wrapper");
     const table = document.querySelector("table.schedule");
     if(wrapper && table){
-      const available = window.innerWidth - 30;
+      const available = window.innerWidth;
       const fullWidth = table.scrollWidth || wrapper.scrollWidth;
-      const scale = Math.min(1, Math.max(0.45, available / fullWidth));
+      const scale = Math.min(1, Math.max(0.25, available / fullWidth));
       document.documentElement.style.setProperty("--screenshot-zoom", scale.toFixed(3));
     }
     window.scrollTo({top:0, left:0, behavior:"instant"});
