@@ -685,12 +685,19 @@ document.getElementById("samePeriod").addEventListener("change", updatePeriodVis
 
 function readTasks(){
   const custom = document.getElementById("samePeriod").value === "custom";
-  return [...document.querySelectorAll("#taskBody tr")].map((tr, i) => {
+  const rows = [...document.querySelectorAll("#taskBody tr")];
+  const parsed = rows.map((tr, i) => {
     const exec = parseInt(tr.querySelector(".exec").value, 10);
     const deadline = parseInt(tr.querySelector(".deadline").value, 10);
     const period = custom ? parseInt(tr.querySelector(".period").value, 10) : deadline;
     return {id:i+1, exec, deadline, period};
-  }).filter(t => t.exec > 0 && t.deadline > 0 && t.period > 0);
+  });
+
+  return parsed.every(task =>
+    task.exec > 0 &&
+    task.deadline > 0 &&
+    task.period > 0
+  ) ? parsed : null;
 }
 
 function writeTasksToInputs(taskList){
@@ -795,16 +802,23 @@ function getHorizon(){
   return parseInt(document.getElementById("horizon").value, 10) || 60;
 }
 
-function buildEmptyTemplate(){
-  tasks = readTasks();
-  const horizon = getHorizon();
+function syncProblemFromInputs(){
+  const currentTasks = readTasks();
 
-  if(!tasks.length){
-    setMessage("Enter at least one valid task.");
-    return;
+  if(!currentTasks || !currentTasks.length){
+    setMessage("Every task needs positive execution, deadline, and period values.");
+    return false;
   }
 
-  jobs = makeJobs(tasks, horizon);
+  tasks = currentTasks;
+  jobs = makeJobs(tasks, getHorizon());
+  return true;
+}
+
+function buildEmptyTemplate(){
+  const horizon = getHorizon();
+
+  if(!syncProblemFromInputs()) return;
   userTimeline = Array(horizon).fill(null);
   showSolutionMode = false;
   compareMode = false;
@@ -816,7 +830,7 @@ function buildEmptyTemplate(){
 }
 
 function showSolution(){
-  if(!tasks.length) buildEmptyTemplate();
+  if(!syncProblemFromInputs()) return;
   showSolutionMode = true;
   compareMode = false;
   render();
@@ -826,8 +840,6 @@ function showSolution(){
 }
 
 function compareSolution(){
-  if(!tasks.length) buildEmptyTemplate();
-
   if(compareMode){
     compareMode = false;
     showSolutionMode = false;
@@ -836,6 +848,7 @@ function compareSolution(){
     return;
   }
 
+  if(!syncProblemFromInputs()) return;
   showSolutionMode = false;
   compareMode = true;
   render();
@@ -964,12 +977,15 @@ function toggleDeadlineBang(taskId, time){
 }
 
 function getPresetData(){
+  const currentTasks = readTasks();
+  if(!currentTasks || !currentTasks.length) return null;
+
   return {
     version: 3,
     algorithm: document.getElementById("algorithm").value,
     horizon: getHorizon(),
     samePeriod: document.getElementById("samePeriod").value,
-    tasks: readTasks(),
+    tasks: currentTasks,
     userTimeline,
     activeTask,
     reqMark: [...reqMark],
@@ -999,9 +1015,9 @@ function refreshPresetList(){
 }
 
 function savePreset(){
-  tasks = readTasks();
-  if(!tasks.length){
-    setMessage("Cannot save: no valid tasks.");
+  const presetData = getPresetData();
+  if(!presetData){
+    setMessage("Every task needs positive execution, deadline, and period values.");
     return;
   }
 
@@ -1009,7 +1025,7 @@ function savePreset(){
   const nameInput = document.getElementById("presetName");
   const name = nameInput.value.trim() || nextSolutionPresetName(presets);
 
-  presets[name] = getPresetData();
+  presets[name] = presetData;
   savePresetsObject(presets);
   refreshPresetList();
   document.getElementById("presetSelect").value = name;
