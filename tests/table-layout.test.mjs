@@ -4,11 +4,11 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 const expectedTokens = [
-  "--schedule-cell-width:44px;",
-  "--schedule-row-height:53px;",
-  "--schedule-side-width:80px;",
-  "--schedule-gap-width:18px;",
-  "--schedule-arrow-height:48px;",
+  "--schedule-cell-width:27px;",
+  "--schedule-row-height:34px;",
+  "--schedule-side-width:51px;",
+  "--schedule-gap-width:11px;",
+  "--schedule-arrow-height:30px;",
   "--schedule-event-grid-offset:calc(var(--schedule-cell-width) / 2);",
 ];
 
@@ -120,6 +120,20 @@ assert.ok(
 assert.ok(
   html.includes(".schedule .time-arrow::before{"),
   "The bottom arrow needs a vertical start cap aligned with time 0.",
+);
+assert.ok(
+  html.includes("const reqAttrs = rJob") &&
+    html.includes('onclick="toggleReqMarker(${taskNo}, ${t})" title="Select task ${taskNo} and toggle ! marker"'),
+  "Visible R markers in Req rows must select their task and toggle !.",
+);
+assert.ok(
+  html.includes('onclick="toggleReqMark(${taskNo}, ${t})" title="Click to add/remove ! marker"'),
+  "Non-marker Req cells must keep the request-marker toggle behavior.",
+);
+assert.ok(
+  html.includes('text = `<span class="instant-marker event-marker">R${rJob.jobNo}${reqMark.has(key) ? "!" : ""}</span>`;') &&
+    html.includes('text = `<span class="instant-marker event-marker">!</span>`;'),
+  "Req markers must use !, matching deadline marker behavior.",
 );
 assert.ok(
   html.includes(".schedule .tick,\n    .schedule .cpu,\n    .schedule .timeindex,\n    .schedule .axis,"),

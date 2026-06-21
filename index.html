@@ -19,11 +19,11 @@
     --t6:#66ccff;
     --bad:#e10000;
     --good:#0b8a22;
-    --schedule-cell-width:44px;
-    --schedule-row-height:53px;
-    --schedule-side-width:80px;
-    --schedule-gap-width:18px;
-    --schedule-arrow-height:48px;
+    --schedule-cell-width:27px;
+    --schedule-row-height:34px;
+    --schedule-side-width:51px;
+    --schedule-gap-width:11px;
+    --schedule-arrow-height:30px;
     --schedule-event-grid-offset:calc(var(--schedule-cell-width) / 2);
   }
 
@@ -174,18 +174,18 @@
     min-width:var(--schedule-side-width);
     background:var(--gray);
     font-weight:700;
-    font-size:22px;
+    font-size:15px;
   }
 
   .schedule .leftlabel{
     text-align:right;
-    padding-right:7px;
+    padding-right:5px;
     border-right-color:#333;
   }
 
   .schedule .rightlabel{
     text-align:left;
-    padding-left:7px;
+    padding-left:5px;
     border-left-color:#333;
   }
 
@@ -193,8 +193,8 @@
     background:var(--gray);
     height:var(--schedule-row-height);
     text-align:left;
-    padding-left:20px;
-    font-size:28px;
+    padding-left:16px;
+    font-size:20px;
     font-weight:700;
     text-decoration: underline;
     text-decoration-color:#c40000;
@@ -203,7 +203,7 @@
 
   .schedule .legend{
     cursor:pointer;
-    font-size:22px;
+    font-size:16px;
     font-weight:700;
   }
 
@@ -220,13 +220,13 @@
   .schedule .tick,
   .schedule .timeindex{
     background:var(--gray);
-    font-size:20px;
+    font-size:13px;
     height:var(--schedule-row-height);
   }
 
   .schedule .cpu{
     background:#fff;
-    font-size:20px;
+    font-size:13px;
     height:var(--schedule-row-height);
   }
 
@@ -272,7 +272,7 @@
   }
 
   .schedule .tasklabel{
-    font-size:24px;
+    font-size:18px;
     font-weight:700;
   }
 
@@ -280,7 +280,7 @@
   .schedule .reqrow{
     background:#ffffff;
     height:var(--schedule-row-height);
-    font-size:20px;
+    font-size:13px;
     font-weight:700;
     cursor:pointer;
     position:relative;
@@ -353,12 +353,12 @@
     top:3px;
     transform:translateX(-50%);
     background:var(--gray);
-    padding:0 3px;
+    padding:0 2px;
   }
 
   .instant-marker.event-marker{
     background:inherit;
-    padding:0 3px;
+    padding:0 2px;
   }
 
   .schedule .eventrow .event-marker,
@@ -409,7 +409,7 @@
   .schedule .time-arrow{
     height:5px;
     background:#000;
-    margin:15px 20px 0 calc(var(--schedule-cell-width) - 2px);
+    margin:8px 12px 0 calc(var(--schedule-cell-width) - 2px);
     position:relative;
   }
 
@@ -618,7 +618,7 @@
 <div class="help">
   Click a colored task number in <b>Res.</b> to select the task. Then click CPU cells to fill them with that task.
   CPU cells also accept keyboard input: click/focus a cell, then press <b>1–6</b>; press <b>0</b>, <b>Backspace</b>, or <b>Delete</b> to clear it.
-  Clicking <b>D</b> cells toggles <b>!</b>. Clicking <b>Req</b> cells toggles <b>✓</b> for progress marking; it does not remove the request anymore.
+  Clicking <b>D</b> cells toggles <b>!</b>. Clicking visible <b>R</b> markers selects that task and toggles <b>!</b>. Other <b>Req</b> cells also toggle <b>!</b> for request marking; they do not remove the request anymore.
   <br><b>Preset note:</b> presets are temporary. Reloading or refreshing the page deletes all presets, so every user starts fresh.
 </div>
 
@@ -969,6 +969,18 @@ function toggleReqMark(taskId, time){
   render();
 }
 
+function toggleReqMarker(taskId, time){
+  activeTask = taskId;
+  document.getElementById("activeTaskText").textContent = `Task ${taskId}`;
+  showSolutionMode = false;
+
+  const key = `${taskId}:${time}`;
+  if(reqMark.has(key)) reqMark.delete(key);
+  else reqMark.add(key);
+
+  render();
+}
+
 function toggleDeadlineBang(taskId, time){
   const key = `${taskId}:${time}`;
   if(dBang.has(key)) dBang.delete(key);
@@ -1174,18 +1186,22 @@ function render(){
     for(let t=0; t<=horizon; t++){
       let text = "";
       let cls = `reqrow`;
+      let rJob = null;
       if(task){
-        const rJob = jobs.find(j => j.taskId === taskNo && j.req === t);
+        rJob = jobs.find(j => j.taskId === taskNo && j.req === t);
         const key = `${taskNo}:${t}`;
         if(rJob){
-          text = `<span class="instant-marker event-marker">R${rJob.jobNo}${reqMark.has(key) ? "✓" : ""}</span>`;
+          text = `<span class="instant-marker event-marker">R${rJob.jobNo}${reqMark.has(key) ? "!" : ""}</span>`;
           cls += ` ${color}`;
         } else if(reqMark.has(key)){
-          text = `<span class="instant-marker event-marker">✓</span>`;
+          text = `<span class="instant-marker event-marker">!</span>`;
           cls += ` ${color}`;
         }
       }
-      html += cell(text, cls, `onclick="toggleReqMark(${taskNo}, ${t})" title="Click to add/remove ✓ marker"`);
+      const reqAttrs = rJob
+        ? `onclick="toggleReqMarker(${taskNo}, ${t})" title="Select task ${taskNo} and toggle ! marker"`
+        : `onclick="toggleReqMark(${taskNo}, ${t})" title="Click to add/remove ! marker"`;
+      html += cell(text, cls, reqAttrs);
     }
     html += `${trailGap("event-gap")}<td class="rightlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td></tr>`;
   }
