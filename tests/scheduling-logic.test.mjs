@@ -15,7 +15,8 @@ function extractFunction(name, nextName) {
 
 const makeJobs = eval(`(${extractFunction("makeJobs", "scheduleEDD")})`);
 const scheduleEDD = eval(`(${extractFunction("scheduleEDD", "scheduleEDF")})`);
-const scheduleEDF = eval(`(${extractFunction("scheduleEDF", "computeSolution")})`);
+const scheduleEDF = eval(`(${extractFunction("scheduleEDF", "scheduleRMS")})`);
+const scheduleRMS = eval(`(${extractFunction("scheduleRMS", "computeSolution")})`);
 const detectMisses = eval(`(${extractFunction("detectMisses", "getHorizon")})`);
 
 const policyDifferenceTasks = [
@@ -35,6 +36,23 @@ assert.deepEqual(
   "EDF must preempt Task 1 at t=3 for Task 2's earlier absolute deadline.",
 );
 
+const rmsPolicyDifferenceTasks = [
+  { id: 1, exec: 1, deadline: 50, period: 4 },
+  { id: 2, exec: 2, deadline: 2, period: 10 },
+];
+
+assert.deepEqual(
+  scheduleRMS(rmsPolicyDifferenceTasks, 6).timeline,
+  [1, 2, 2, null, 1, null],
+  "RMS must choose the shortest-period ready task, not the earliest absolute deadline.",
+);
+
+assert.deepEqual(
+  scheduleEDF(rmsPolicyDifferenceTasks, 6).timeline,
+  [2, 2, 1, null, 1, null],
+  "EDF must still choose by absolute deadline for the same task set.",
+);
+
 const orderingTasks = [
   { id: 1, exec: 2, deadline: 8, period: 100 },
   { id: 2, exec: 1, deadline: 3, period: 100 },
@@ -50,6 +68,24 @@ assert.deepEqual(
   scheduleEDF([{ id: 1, exec: 1, deadline: 4, period: 4 }], 10).timeline,
   [1, null, null, null, 1, null, null, null, 1, null],
   "The processor must remain idle when no job is ready.",
+);
+
+assert.deepEqual(
+  scheduleRMS(
+    [
+      { id: 1, exec: 1, deadline: 99, period: 4 },
+      { id: 2, exec: 6, deadline: 20, period: 20 },
+    ],
+    8,
+  ).timeline,
+  [1, 2, 2, 2, 1, 2, 2, 2],
+  "RMS must preempt immediately when a shorter-period job is released.",
+);
+
+assert.deepEqual(
+  scheduleRMS([{ id: 1, exec: 1, deadline: 99, period: 4 }], 10).jobs.map((job) => job.absDeadline),
+  [4, 8, 12],
+  "RMS jobs must use the period as their absolute-deadline spacing.",
 );
 
 const overloaded = scheduleEDF(
@@ -79,4 +115,4 @@ assert.ok(
   "Task parsing must reject invalid rows instead of silently dropping them.",
 );
 
-console.log("EDD/EDF scheduling logic is correct and synchronized.");
+console.log("EDD/EDF/RMS scheduling logic is correct and synchronized.");

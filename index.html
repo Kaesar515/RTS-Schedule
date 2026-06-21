@@ -571,6 +571,7 @@
       <select id="algorithm">
         <option value="EDD">EDD — non-preemptive, earliest absolute due date</option>
         <option value="EDF">EDF — preemptive, earliest absolute deadline</option>
+        <option value="RMS">RMS — preemptive, shortest period first</option>
       </select>
     </div>
 
@@ -803,10 +804,40 @@ function scheduleEDF(taskList, horizon){
   return {timeline, jobs:js};
 }
 
+function scheduleRMS(taskList, horizon){
+  const rmsTasks = taskList.map(task => ({...task, deadline: task.period}));
+  const js = makeJobs(rmsTasks, horizon);
+  const timeline = Array(horizon).fill(null);
+  const periodByTaskId = new Map(rmsTasks.map(task => [task.id, task.period]));
+
+  for(let time=0; time<horizon; time++){
+    const current = js
+      .filter(j => !j.completed && j.req <= time && j.remaining > 0)
+      .sort((a,b) =>
+        periodByTaskId.get(a.taskId) - periodByTaskId.get(b.taskId) ||
+        a.req - b.req ||
+        a.taskId - b.taskId
+      )[0] || null;
+
+    if(current){
+      if(current.start === null) current.start = time;
+      timeline[time] = current.taskId;
+      current.remaining--;
+      if(current.remaining === 0){
+        current.completed = true;
+        current.completion = time + 1;
+      }
+    }
+  }
+  return {timeline, jobs:js};
+}
+
 function computeSolution(){
   const horizon = getHorizon();
   const algorithm = document.getElementById("algorithm").value;
-  return algorithm === "EDD" ? scheduleEDD(tasks, horizon) : scheduleEDF(tasks, horizon);
+  if(algorithm === "EDD") return scheduleEDD(tasks, horizon);
+  if(algorithm === "RMS") return scheduleRMS(tasks, horizon);
+  return scheduleEDF(tasks, horizon);
 }
 
 function detectMisses(js, horizon){
