@@ -54,14 +54,13 @@ assert.ok(
   "CPU must use the leading interval gap.",
 );
 assert.ok(
-  html.includes('html += `<tr><td class="leftlabel">t'),
+  html.includes('html += `<tr><td class="leftlabel ti-label axis-label" rowspan="2">t') &&
+    html.includes('html += `<tr><td class="leftlabel ti-label time-label">t'),
   "Time rows must still exist.",
 );
 assert.ok(
-  html.includes('${trailGap("gray-gap")}<td class="rightlabel">tᵢ</td></tr>') ||
-    html.includes('${trailGap("gray-gap")}<td class="rightlabel">táµ¢</td></tr>') ||
-    html.includes('${trailGap("gray-gap")}<td class="rightlabel">tÃ¡ÂµÂ¢</td></tr>') ||
-    html.includes('${trailGap("gray-gap")}<td class="rightlabel">tÃƒÂ¡Ã‚ÂµÃ‚Â¢</td></tr>'),
+  html.includes('<td class="trail-gap gray-gap" rowspan="2"></td><td class="rightlabel ti-label axis-label" rowspan="2">') &&
+    html.includes('html += `<tr>`;'),
   "Instant-based t rows must end with the trailing gap, not start with a spacer.",
 );
 assert.ok(

@@ -189,6 +189,21 @@
     border-left-color:#333;
   }
 
+  .schedule .ti-label{
+    text-align:center;
+    padding:0;
+    font-size:13px;
+    line-height:1;
+  }
+
+  .schedule .ti-label.axis-label{
+    border-bottom:none;
+  }
+
+  .schedule .ti-label.time-label{
+    border-top:none;
+  }
+
   .schedule .titlecell{
     background:var(--gray);
     height:var(--schedule-row-height);
@@ -1144,13 +1159,13 @@ function render(){
   }
   html += `<td class="rightlabel">CPU:</td></tr>`;
 
-  html += `<tr><td class="leftlabel">tᵢ</td>`;
+  html += `<tr><td class="leftlabel ti-label axis-label" rowspan="2">tᵢ</td>`;
   for(let t=0; t<=horizon; t++) html += cell("", "axis");
-  html += `${trailGap("gray-gap")}<td class="rightlabel">tᵢ</td></tr>`;
+  html += `<td class="trail-gap gray-gap" rowspan="2"></td><td class="rightlabel ti-label axis-label" rowspan="2">tᵢ</td></tr>`;
 
-  html += `<tr><td class="leftlabel"></td>`;
+  html += `<tr>`;
   for(let t=0; t<=horizon; t++) html += cell(`<span class="instant-marker time-marker">${t}</span>`, "timeindex");
-  html += `${trailGap("gray-gap")}<td class="rightlabel"></td></tr>`;
+  html += `</tr>`;
 
   for(let taskNo=1; taskNo<=minTaskRows; taskNo++){
     const task = tasks.find(x => x.id === taskNo);
@@ -1206,9 +1221,9 @@ function render(){
     html += `${trailGap("event-gap")}<td class="rightlabel ${color}">Req${superscript(taskNo)}<sub>i</sub></td></tr>`;
   }
 
-  html += `<tr><td class="leftlabel">tᵢ</td>`;
+  html += `<tr><td class="leftlabel ti-label time-label">tᵢ</td>`;
   for(let t=0; t<=horizon; t++) html += cell(`<span class="instant-marker time-marker">${t}</span>`, "timeindex");
-  html += `${trailGap("gray-gap")}<td class="rightlabel">tᵢ</td></tr>`;
+  html += `${trailGap("gray-gap")}<td class="rightlabel ti-label time-label">tᵢ</td></tr>`;
 
   html += `<tr class="arrowrow"><td class="leftlabel">t</td><td colspan="${horizon+2}" class="arrowcell">
     <div class="time-arrow"></div>
